@@ -195,7 +195,7 @@ This shot builds the entire left side of the architecture diagram.
 | Start             | 2:55.700                                                                                      |
 | Complete          | 2:56.900                                                                                      |
 
-**Phase 3: Main node — "worktree-worker" (2:56.900–2:59.400)**
+**Phase 3: Main node — "worktree-bg" (2:56.900–2:59.400)**
 
 The main node builds inside the container after the container border completes.
 
@@ -205,7 +205,7 @@ The main node builds inside the container after the container border completes.
 | Node border          | 1 px solid `#374151`                                                                       |
 | Node fill            | `#0A0F1A` (Deep Navy — darker than container, per Design System § 5.5)                     |
 | Node padding         | 24 px all sides                                                                            |
-| Title text           | "worktree-worker" in `heading-2` (Inter SemiBold, 64 px at 4K / 32 px at HD)              |
+| Title text           | "worktree-bg" in `heading-2` (Inter SemiBold, 64 px at 4K / 32 px at HD)              |
 | Title color          | `#00D4FF` (Accent Cyan) — the worker is a W0rkTree component, it gets brand color          |
 | Title animation      | `opacity(0)` + `translateY(16px)` → `opacity(1)` + `translateY(0)`, 400 ms, `ease-enter`  |
 | Title start          | 2:56.900                                                                                   |
@@ -425,7 +425,7 @@ During this hold, the narrator delivers the second half of the Segment 5B narrat
 │   LOCAL MACHINE                                    REMOTE / HOSTED      │
 │  ┌──────────────────────┐                        ┌──────────────────────┐│
 │  │                      │                        │                      ││
-│  │  worktree-worker     │    QUIC                │  worktree-server     ││
+│  │  worktree-bg     │    QUIC                │  worktree-server     ││
 │  │  ─────────────────   │  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄▶   │  ─────────────────   ││
 │  │  • Filesystem watcher│    (sync)              │  • Multi-tenant      ││
 │  │  • Auto-snapshots    │                        │  • IAM / Access Ctrl ││
@@ -1075,7 +1075,7 @@ The three words form a single centered line below the connection: "Encrypted •
 | Effect                | ALL `#00D4FF` elements in the diagram simultaneously pulse: 80 % → 100 % → 80 % opacity   |
 | Duration              | 2000 ms total (1000 ms brightening, 1000 ms dimming)                                       |
 | Easing                | `ease-standard`                                                                             |
-| Elements affected     | "worktree-worker" label, "worktree-server" label, connection line, "TLS / QUIC" label, all `#00D4FF` file paths |
+| Elements affected     | "worktree-bg" label, "worktree-server" label, connection line, "TLS / QUIC" label, all `#00D4FF` file paths |
 | Meaning               | A "heartbeat" — the system is alive, connected, flowing                                     |
 
 ### SHOT 5E.3 — Final Hold (4:10.500–4:15.000)

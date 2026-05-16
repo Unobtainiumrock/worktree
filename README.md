@@ -77,7 +77,7 @@ W0rkTree operates as a **two-runtime system**. Neither runtime is optional.
 │                  Developer Machine                    │
 │                                                       │
 │  ┌─────────────────────────────────────────────────┐  │
-│  │            worktree-bgprocess                   │  │
+│  │            worktree-bg                   │  │
 │  │                                                 │  │
 │  │  • Filesystem watcher (OS-native APIs)          │  │
 │  │  • Auto-snapshot engine                         │  │

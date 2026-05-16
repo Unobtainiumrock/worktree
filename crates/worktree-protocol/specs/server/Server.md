@@ -37,7 +37,7 @@ Every W0rkTree deployment has exactly two runtimes:
 
 | Runtime | Location | Role |
 |---|---|---|
-| `worktree-bgprocess` (a.k.a. `worktree-worker`) | Developer's machine | Watches files, creates snapshots, syncs to server |
+| `worktree-bg` | Developer's machine | Watches files, creates snapshots, syncs to server |
 | `worktree-server` | Remote host | Source of truth for history, access, compliance |
 
 The server is the **source of truth**. If a local history diverges from the server, the server wins. The bgprocess syncs with the server but cannot bypass its enforcement. Every operation that crosses a trust boundary — pushing, merging, granting access, exporting — flows through the server.
@@ -48,7 +48,7 @@ This document specifies the server's complete responsibilities, data model, enfo
 
 ## 2. What the Server Is NOT
 
-The server is **not** the local daemon. The bgprocess (`worktree-worker`) handles everything on the developer's machine. The following are explicit non-responsibilities of the server:
+The server is **not** the local daemon. The bgprocess (`worktree-bg`) handles everything on the developer's machine. The following are explicit non-responsibilities of the server:
 
 - **Never watches files** — the server has no access to the developer's filesystem.
 - **Never creates auto-snapshots** — it only stores what the bgprocess sends.

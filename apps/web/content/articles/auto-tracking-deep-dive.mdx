@@ -9,13 +9,13 @@ summary: "W0rkTree's automatic worker eliminates manual staging by watching your
 
 ## The End of Manual Staging
 
-Every Git user has experienced the pain: you fix a critical bug, test it, ship it — and then realize you forgot to `git add` that one file. Manual staging is a relic of an era when disk was expensive and developers worked on single files at a time. W0rkTree's auto-tracking system replaces this entire workflow with a local background worker (`worktree-worker` or `bgprocess`) that watches your working directory and captures every meaningful change automatically.
+Every Git user has experienced the pain: you fix a critical bug, test it, ship it — and then realize you forgot to `git add` that one file. Manual staging is a relic of an era when disk was expensive and developers worked on single files at a time. W0rkTree's auto-tracking system replaces this entire workflow with a local background worker (`worktree-bg` or `bgprocess`) that watches your working directory and captures every meaningful change automatically.
 
 The result is that you never lose work, you never forget to stage a file, and your entire editing history is preserved as a series of lightweight snapshots that you can browse, diff, and restore at any time.
 
 ## The Worker Architecture
 
-At the heart of auto-tracking is `worktree-worker`, a long-running background process that starts when you open a W0rkTree repository. The worker is architected as a pipeline of three stages:
+At the heart of auto-tracking is `worktree-bg`, a long-running background process that starts when you open a W0rkTree repository. The worker is architected as a pipeline of three stages:
 
 - **Watcher layer** — Uses platform-native filesystem notification APIs (`ReadDirectoryChangesW` on Windows, `inotify` on Linux, `FSEvents` on macOS) to receive change events with minimal overhead. Recursive watches are registered per-tree, so only the trees you're actively working in consume resources.
 - **Aggregator layer** — Raw filesystem events are noisy. A single file save in most editors triggers a delete, create, and rename sequence. The aggregator collects events into a sliding window and collapses them into semantic operations: file created, file modified, file deleted, file moved. This stage also handles the critical debounce logic — it waits for a configurable quiet period (default 2 seconds) after the last event before emitting an aggregated changeset.

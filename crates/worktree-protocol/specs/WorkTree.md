@@ -43,7 +43,7 @@ W0rkTree is **not** a Git wrapper. It is **not** a Git hosting platform. It is *
 **What W0rkTree provides that Git does not:**
 
 - **Multi-tenant architecture** — Users and organizations are first-class entities with verified identity, cross-tenant access grants, and per-tree visibility modes.
-- **Two-runtime model** — A local background process (`worktree-bgprocess`) handles file watching and auto-snapshots. A remote server (`worktree-server`) handles canonical history, access control, and compliance enforcement.
+- **Two-runtime model** — A local background process (`worktree-bg`) handles file watching and auto-snapshots. A remote server (`worktree-server`) handles canonical history, access control, and compliance enforcement.
 - **Staged snapshot visibility** — Your team can see what you are working on in real-time, without you pushing incomplete work to a branch.
 - **Declarative access control** — TOML-based, version-controlled, Terraform-style access policies at every level of the tree hierarchy.
 - **File-level license compliance** — Per-path SPDX license tracking, server-enforced on every sync.
@@ -142,7 +142,7 @@ W0rkTree is split into two cooperating runtimes. Neither is optional. The local 
 │                  Developer Machine                    │
 │                                                       │
 │  ┌─────────────────────────────────────────────────┐  │
-│  │            worktree-bgprocess                   │  │
+│  │            worktree-bg                   │  │
 │  │                                                 │  │
 │  │  • Filesystem watcher (real-time)               │  │
 │  │  • Auto-snapshot engine                         │  │
@@ -183,7 +183,7 @@ W0rkTree is split into two cooperating runtimes. Neither is optional. The local 
 
 ### BGProcess Responsibilities
 
-The background process (`worktree-bgprocess`) runs continuously on the developer's machine. It is the **only process that touches the working directory**. The server never reads or writes files on the developer's machine.
+The background process (`worktree-bg`) runs continuously on the developer's machine. It is the **only process that touches the working directory**. The server never reads or writes files on the developer's machine.
 
 | Responsibility | Details |
 |---|---|
@@ -1846,7 +1846,7 @@ W0rkTree speaks its own native protocol for full functionality. It also speaks G
 | **Branch** | A named pointer to a snapshot chain within a tree. |
 | **Linked Branch** | Branches across different trees that must be merged together. |
 | **Tenant** | A user or organization with verified identity on the W0rkTree server. |
-| **BGProcess** | The local background process (`worktree-bgprocess`) that runs on the developer's machine. |
+| **BGProcess** | The local background process (`worktree-bg`) that runs on the developer's machine. |
 | **Server** | The remote server (`worktree-server`) that is the source of truth. |
 | **Tag** | An immutable named reference to a specific snapshot. |
 | **Release** | A tag with attached artifacts, notes, and status. |

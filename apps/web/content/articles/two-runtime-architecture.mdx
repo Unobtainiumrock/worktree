@@ -14,10 +14,10 @@ When you use Git, you are interacting with a single, synchronous executable (`gi
 Because Git only runs when you explicitly invoke it, the burden of synchronization falls entirely on the developer. You have to remember to stage files, commit them, and push them to the server. You also have to remember to pull changes to see what your team is doing. The result is a highly disconnected workflow where the local repository and the remote server are almost always out of sync.
 
 W0rkTree fixes this fundamental disconnect by splitting version control into a **Two-Runtime Architecture**:
-1. The **Local Worker** (`worktree-bgprocess`)
+1. The **Local Worker** (`worktree-bg`)
 2. The **Remote Server** (`worktree-server`)
 
-## Runtime 1: The Local Worker (`worktree-bgprocess`)
+## Runtime 1: The Local Worker (`worktree-bg`)
 
 Instead of a passive executable that waits for your commands, W0rkTree installs a lightweight, highly optimized background process on your machine. This is your local VCS engine.
 
