@@ -2,16 +2,31 @@
 set -euo pipefail
 echo "Running Worktree CI pipeline..."
 echo ""
-echo "Step 1: Check formatting..."
+echo "Step 1: Check formatting (Rust)..."
 cargo fmt --all -- --check
 echo ""
-echo "Step 2: Run clippy..."
+echo "Step 2: Run clippy (Rust)..."
 cargo clippy --workspace -- -D warnings
 echo ""
-echo "Step 3: Run tests..."
+echo "Step 3: Run tests (Rust)..."
 cargo test --workspace
 echo ""
-echo "Step 4: Build release..."
+echo "Step 4: Build release (Rust)..."
 cargo build --release
+echo ""
+echo "Step 5: Check formatting (Go)..."
+(cd services/server-go && test -z "$(gofmt -l .)")
+echo ""
+echo "Step 6: Run vet (Go)..."
+(cd services/server-go && go vet ./...)
+echo ""
+echo "Step 7: Run golangci-lint (Go)..."
+(cd services/server-go && golangci-lint run ./...)
+echo ""
+echo "Step 8: Run tests (Go)..."
+(cd services/server-go && go test ./...)
+echo ""
+echo "Step 9: Build (Go)..."
+(cd services/server-go && go build ./...)
 echo ""
 echo "CI pipeline complete."
