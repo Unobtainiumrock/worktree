@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/worktree-protocol",
     "crates/worktree-server",
+    "crates/worktree-bg",
     "crates/worktree-git",
     "crates/worktree-cli",
     "crates/worktree-sdk",

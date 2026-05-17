@@ -9,7 +9,7 @@
 
 ## Overview
 
-`worktree-protocol` is the foundational crate that defines every data type, wire format, access control primitive, and protocol message used by the W0rkTree version control system. It is the **single source of truth** for the binary protocol spoken between the two W0rkTree runtimes — the local background process (`worktree-bgprocess`) and the remote server (`worktree-server`).
+`worktree-protocol` is the foundational crate that defines every data type, wire format, access control primitive, and protocol message used by the W0rkTree version control system. It is the **single source of truth** for the binary protocol spoken between the two W0rkTree runtimes — the local background process (`worktree-bg`) and the remote server (`worktree-server`).
 
 W0rkTree is **not** a Git wrapper, extension, or hosting layer. It is an independent version control system with its own protocol, storage model, identity system, and history model. It speaks Git only for migration and interoperability — nothing more.
 
@@ -35,7 +35,7 @@ W0rkTree operates as a **two-runtime system**. This crate defines the contract b
 │              Developer Machine                   │
 │                                                  │
 │   ┌──────────────────────────────────────────┐   │
-│   │         worktree-bgprocess               │   │
+│   │         worktree-bg               │   │
 │   │                                          │   │
 │   │  • Filesystem watcher (OS-native)        │   │
 │   │  • Auto-snapshot engine                  │   │

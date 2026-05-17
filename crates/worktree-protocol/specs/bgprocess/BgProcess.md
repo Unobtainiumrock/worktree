@@ -35,7 +35,7 @@
 
 ## 1. Overview
 
-The **bgprocess** (`worktree-worker`) is a persistent local daemon that runs on the
+The **bgprocess** (`worktree-bg`) is a persistent local daemon that runs on the
 developer's machine. It is the core VCS engine — it manages all local versioning
 operations and communicates with the remote W0rkTree server for sync, visibility,
 and collaboration.
@@ -68,7 +68,7 @@ constraint**, not an implementation detail.
 - **Not the server.** Current code in `worktree-server` conflates local bgprocess
   logic (watcher, debouncer, semantic event classifier, auto-snapshot engine) with
   server logic. This must be separated. The bgprocess will live in a dedicated
-  `worktree-worker` crate.
+  `worktree-bg` crate.
 - **Not a build tool.** It does not compile, test, or deploy code.
 - **Not a web server.** It does not serve HTTP to external clients. It only listens
   on local IPC for CLI commands.
@@ -82,9 +82,9 @@ Throughout W0rkTree documentation and code:
 | Term | Refers to |
 |---|---|
 | `bgprocess` | The local daemon specified in this document |
-| `worktree-worker` | The Rust crate that implements the bgprocess |
+| `worktree-bg` | The Rust crate that implements the bgprocess |
 | `worktree-server` | The **remote** server — canonical history, IAM, compliance |
-| `daemon` | The long-running process entry point within `worktree-worker` |
+| `daemon` | The long-running process entry point within `worktree-bg` |
 
 > **Important:** Any existing code or documentation that refers to the bgprocess
 > as "the server" is incorrect and should be updated.
@@ -100,7 +100,7 @@ Throughout W0rkTree documentation and code:
 │                      Developer Machine                          │
 │                                                                 │
 │   ┌───────────┐        IPC         ┌────────────────────────┐  │
-│   │  wt CLI   │◄──────────────────►│   worktree-worker      │  │
+│   │  wt CLI   │◄──────────────────►│   worktree-bg      │  │
 │   │           │  (socket / pipe)   │   (bgprocess daemon)   │  │
 │   └───────────┘                    │                        │  │
 │                                    │  ┌──────────────────┐  │  │
@@ -1348,7 +1348,7 @@ optionally via Prometheus endpoint):
 ### 21.1 What Exists Today
 
 The following code exists in `worktree-server` but **belongs in the bgprocess**
-(`worktree-worker`):
+(`worktree-bg`):
 
 | Module | Location | Status |
 |---|---|---|
@@ -1377,7 +1377,7 @@ The protocol crate provides shared types and algorithms used by the bgprocess:
 
 | Component | Priority | Complexity |
 |---|---|---|
-| **`worktree-worker` crate** | 🔴 Critical | High — new crate, extract from server |
+| **`worktree-bg` crate** | 🔴 Critical | High — new crate, extract from server |
 | **IPC server** | 🔴 Critical | Medium — socket/pipe listener, JSON protocol |
 | **Auto-snapshot engine** | 🔴 Critical | Medium — rule evaluation, changeset tracking |
 | **Sync engine** | 🔴 Critical | High — delta sync, conflict detection |
@@ -1393,17 +1393,17 @@ The protocol crate provides shared types and algorithms used by the bgprocess:
 
 ## 22. Migration Plan
 
-### Phase 1: Create `worktree-worker` Crate
+### Phase 1: Create `worktree-bg` Crate
 
-1. Create `crates/worktree-worker/` with standard Cargo layout.
+1. Create `crates/worktree-bg/` with standard Cargo layout.
 2. Add dependency on `worktree-protocol` (for shared types, diff, hash).
 3. Move the following from `worktree-server`:
-   - `watcher/debounce.rs` → `worktree-worker/src/watcher/debounce.rs`
-   - `watcher/fs.rs` → `worktree-worker/src/watcher/fs.rs`
-   - `engine/event.rs` → `worktree-worker/src/engine/event.rs`
-   - `config/settings.rs` (watcher + auto-snapshot portions) → `worktree-worker/src/config/`
-   - `service/daemon.rs` → `worktree-worker/src/daemon.rs`
-4. Update `worktree-server` to remove extracted code and depend on `worktree-worker`
+   - `watcher/debounce.rs` → `worktree-bg/src/watcher/debounce.rs`
+   - `watcher/fs.rs` → `worktree-bg/src/watcher/fs.rs`
+   - `engine/event.rs` → `worktree-bg/src/engine/event.rs`
+   - `config/settings.rs` (watcher + auto-snapshot portions) → `worktree-bg/src/config/`
+   - `service/daemon.rs` → `worktree-bg/src/daemon.rs`
+4. Update `worktree-server` to remove extracted code and depend on `worktree-bg`
    only if needed for shared types (prefer protocol crate for shared types).
 
 ### Phase 2: Implement Core Subsystems

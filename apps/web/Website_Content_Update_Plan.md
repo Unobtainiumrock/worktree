@@ -736,7 +736,7 @@ No structural changes needed. Add entries as features ship. Ensure terminology u
 
 **File**: `apps/web/app/contributing/page.tsx`
 
-**Update prerequisites** to reflect current project structure. Add note about `worktree-bgprocess` crate (once created).
+**Update prerequisites** to reflect current project structure. Add note about `worktree-bg` crate (once created).
 
 ### 11.6 Community Page (`/community`)
 

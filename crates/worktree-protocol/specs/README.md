@@ -10,7 +10,7 @@
 - [Git vs W0rkTree — Full Comparison](#git-vs-w0rktree--full-comparison)
 - [Core Terminology](#core-terminology)
 - [Architecture — Two Runtimes](#architecture--two-runtimes)
-  - [worktree-bgprocess (Local)](#worktree-bgprocess-local)
+  - [worktree-bg (Local)](#worktree-bg-local)
   - [worktree-server (Remote)](#worktree-server-remote)
 - [Key Innovations](#key-innovations)
   - [1. Multi-Tenant Architecture](#1-multi-tenant-architecture)
@@ -112,8 +112,7 @@ W0rkTree is split into two cooperating runtimes. Neither is optional. The local 
 │                Developer Machine                  │
 │                                                   │
 │  ┌─────────────────────────────────────────────┐  │
-│  │          worktree-bgprocess                 │  │
-│  │          (a.k.a. worktree-worker)           │  │
+│  │          worktree-bg                        │  │
 │  │                                             │  │
 │  │  • File system watcher                      │  │
 │  │  • Auto-snapshot engine                     │  │
@@ -145,7 +144,7 @@ W0rkTree is split into two cooperating runtimes. Neither is optional. The local 
 └───────────────────────────────────────────────────┘
 ```
 
-### worktree-bgprocess (Local)
+### worktree-bg (Local)
 
 The background process runs continuously on the developer's machine. It is the only process that touches the working directory.
 
