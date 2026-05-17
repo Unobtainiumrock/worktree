@@ -1,5 +1,4 @@
 pub mod config;
-pub mod service;
 pub mod git;
 pub mod storage;
 pub mod auth;

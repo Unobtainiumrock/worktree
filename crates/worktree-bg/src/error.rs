@@ -22,6 +22,9 @@ pub enum BgError {
     #[error("storage error: {0}")]
     Storage(String),
 
+    #[error("config error: {0}")]
+    Config(String),
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 }
