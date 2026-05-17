@@ -246,7 +246,7 @@ Long-running daemon that watches the filesystem, auto-snapshots, syncs with the 
 | `storage::disk` | 🔶 Partial | Git-style fan-out paths (store/retrieve stubs) |
 | `engine::rules` | ✅ Complete | Declarative condition/action automation rules |
 | `engine::event` | 🔶 Types only | Semantic event classification (CodeChange, ConfigChange, ...) |
-| `engine::auto_commit` | 🔶 Structure | Threshold-based auto-snapshot engine |
+| `engine::auto_snapshot` | 🔶 Structure | Threshold-based auto-snapshot engine |
 | `sync::transport` | ✅ Complete | QUIC/TCP transport abstraction |
 | `api::handlers` | 🔶 Stubs | Init, status, snapshot, branch request handlers |
 | `service::health` | ✅ Complete | Health tracking (uptime, trees watched, snapshots created) |
