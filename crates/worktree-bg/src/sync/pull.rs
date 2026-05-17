@@ -1,4 +1,4 @@
-use crate::error::ServerError;
+use crate::error::BgError;
 
 /// Represents a pull (fetch + integrate) operation from a remote Worktree server.
 ///
@@ -46,8 +46,8 @@ impl PullOperation {
     /// 3. Download missing objects (snapshots, blobs, deltas).
     /// 4. Integrate the remote branch tip into the local branch.
     ///
-    /// Returns `Ok(())` on success, or a `ServerError` if any step fails.
-    pub async fn execute(&self) -> Result<(), ServerError> {
+    /// Returns `Ok(())` on success, or a `BgError` if any step fails.
+    pub async fn execute(&self) -> Result<(), BgError> {
         tracing::info!(
             remote = %self.remote,
             branch = ?self.branch,

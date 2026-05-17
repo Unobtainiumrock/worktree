@@ -1,4 +1,4 @@
-use crate::error::ServerError;
+use crate::error::BgError;
 
 /// Transport layer used for synchronizing data between Worktree peers.
 ///
@@ -36,7 +36,7 @@ impl Transport {
     ///
     /// This will negotiate the appropriate protocol handshake and return
     /// once the connection is ready for data transfer.
-    pub async fn connect(&self) -> Result<(), ServerError> {
+    pub async fn connect(&self) -> Result<(), BgError> {
         tracing::info!(
             "Connecting via {} to {}",
             self.protocol_name(),
