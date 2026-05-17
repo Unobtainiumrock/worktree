@@ -607,6 +607,90 @@ impl TryFrom<wire::SyncEnvelope> for dom::SyncEnvelope {
 }
 
 // ============================================================
+// PushRejection (oneof) + PushResponse
+// ============================================================
+
+impl From<dom::PushRejection> for wire::PushRejection {
+    fn from(d: dom::PushRejection) -> Self {
+        use dom::PushRejection::*;
+        use wire::push_rejection as pr;
+        let reason = match d {
+            ConflictDetected { server_tip } => pr::Reason::ConflictDetected(pr::ConflictDetected {
+                server_tip: Some(server_tip.into()),
+            }),
+            BranchProtection { rule } => {
+                pr::Reason::BranchProtection(pr::BranchProtection { rule })
+            }
+            AccessDenied { reason } => pr::Reason::AccessDenied(pr::AccessDenied { reason }),
+            LicenseViolation { path, license } => {
+                pr::Reason::LicenseViolation(pr::LicenseViolation { path, license })
+            }
+            CiChecksFailed { checks } => pr::Reason::CiChecksFailed(pr::CiChecksFailed { checks }),
+            ReviewRequired { required, current } => {
+                pr::Reason::ReviewRequired(pr::ReviewRequired { required, current })
+            }
+            QuotaExceeded { limit } => pr::Reason::QuotaExceeded(pr::QuotaExceeded { limit }),
+        };
+        Self {
+            reason: Some(reason),
+        }
+    }
+}
+
+impl TryFrom<wire::PushRejection> for dom::PushRejection {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::PushRejection) -> Result<Self, Self::Error> {
+        use wire::push_rejection::Reason;
+        let reason = w
+            .reason
+            .ok_or(ConversionError::MissingOneofVariant("PushRejection.reason"))?;
+        Ok(match reason {
+            Reason::ConflictDetected(v) => dom::PushRejection::ConflictDetected {
+                server_tip: required(v.server_tip, "PushRejection.ConflictDetected.server_tip")?,
+            },
+            Reason::BranchProtection(v) => dom::PushRejection::BranchProtection { rule: v.rule },
+            Reason::AccessDenied(v) => dom::PushRejection::AccessDenied { reason: v.reason },
+            Reason::LicenseViolation(v) => dom::PushRejection::LicenseViolation {
+                path: v.path,
+                license: v.license,
+            },
+            Reason::CiChecksFailed(v) => dom::PushRejection::CiChecksFailed { checks: v.checks },
+            Reason::ReviewRequired(v) => dom::PushRejection::ReviewRequired {
+                required: v.required,
+                current: v.current,
+            },
+            Reason::QuotaExceeded(v) => dom::PushRejection::QuotaExceeded { limit: v.limit },
+        })
+    }
+}
+
+impl From<dom::PushResponse> for wire::PushResponse {
+    fn from(d: dom::PushResponse) -> Self {
+        Self {
+            accepted: d.accepted,
+            rejection_reason: d.rejection_reason.map(Into::into),
+            new_tip: d.new_tip.map(Into::into),
+        }
+    }
+}
+
+impl TryFrom<wire::PushResponse> for dom::PushResponse {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::PushResponse) -> Result<Self, Self::Error> {
+        Ok(dom::PushResponse {
+            accepted: w.accepted,
+            rejection_reason: w
+                .rejection_reason
+                .map(dom::PushRejection::try_from)
+                .transpose()?,
+            new_tip: w.new_tip.map(SnapshotId::try_from).transpose()?,
+        })
+    }
+}
+
+// ============================================================
 // Tests
 // ============================================================
 
@@ -988,5 +1072,104 @@ mod tests {
         assert_eq!(d.message_type, back.message_type);
         assert_eq!(d.payload, back.payload);
         assert_eq!(d.sequence, back.sequence);
+    }
+
+    // PushRejection oneof variant roundtrips
+
+    fn push_rejection_roundtrip(d: dom::PushRejection) {
+        let w: wire::PushRejection = d.clone().into();
+        let back: dom::PushRejection = w.try_into().unwrap();
+        assert_eq!(d, back);
+    }
+
+    #[test]
+    fn push_rejection_conflict_detected_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::ConflictDetected {
+            server_tip: SnapshotId::new(),
+        });
+    }
+
+    #[test]
+    fn push_rejection_branch_protection_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::BranchProtection {
+            rule: "no-force-push-to-main".to_string(),
+        });
+    }
+
+    #[test]
+    fn push_rejection_access_denied_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::AccessDenied {
+            reason: "account lacks write permission".to_string(),
+        });
+    }
+
+    #[test]
+    fn push_rejection_license_violation_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::LicenseViolation {
+            path: "vendor/forbidden.rs".to_string(),
+            license: "GPL-3.0".to_string(),
+        });
+    }
+
+    #[test]
+    fn push_rejection_ci_checks_failed_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::CiChecksFailed {
+            checks: vec!["clippy".to_string(), "fmt".to_string()],
+        });
+    }
+
+    #[test]
+    fn push_rejection_review_required_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::ReviewRequired {
+            required: 2,
+            current: 1,
+        });
+    }
+
+    #[test]
+    fn push_rejection_quota_exceeded_roundtrip() {
+        push_rejection_roundtrip(dom::PushRejection::QuotaExceeded {
+            limit: "100GB".to_string(),
+        });
+    }
+
+    #[test]
+    fn push_rejection_missing_oneof_variant_error() {
+        let w = wire::PushRejection { reason: None };
+        let err = dom::PushRejection::try_from(w).unwrap_err();
+        match err {
+            ConversionError::MissingOneofVariant(field) => {
+                assert_eq!(field, "PushRejection.reason");
+            }
+            other => panic!("expected MissingOneofVariant, got {:?}", other),
+        }
+    }
+
+    // PushResponse roundtrips
+
+    #[test]
+    fn push_response_accepted_roundtrip() {
+        let new_tip = SnapshotId::new();
+        let d = dom::PushResponse::accepted(new_tip);
+        let w: wire::PushResponse = d.clone().into();
+        let back: dom::PushResponse = w.try_into().unwrap();
+        assert!(back.accepted);
+        assert_eq!(back.new_tip, Some(new_tip));
+        assert!(back.rejection_reason.is_none());
+    }
+
+    #[test]
+    fn push_response_rejected_roundtrip() {
+        let d = dom::PushResponse::rejected(dom::PushRejection::AccessDenied {
+            reason: "denied".to_string(),
+        });
+        let w: wire::PushResponse = d.clone().into();
+        let back: dom::PushResponse = w.try_into().unwrap();
+        assert!(!back.accepted);
+        assert!(back.new_tip.is_none());
+        match back.rejection_reason {
+            Some(dom::PushRejection::AccessDenied { reason }) => assert_eq!(reason, "denied"),
+            other => panic!("expected AccessDenied, got {:?}", other),
+        }
     }
 }
