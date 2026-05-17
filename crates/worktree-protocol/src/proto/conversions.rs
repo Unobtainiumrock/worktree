@@ -151,6 +151,462 @@ impl TryFrom<wire::ContentHash> for ContentHash {
 }
 
 // ============================================================
+// Helper: collect a Vec via element-wise TryFrom
+// ============================================================
+
+/// Collect a `Vec<W>` of wire elements into a `Vec<D>` of domain elements,
+/// short-circuiting on the first conversion error.
+fn try_collect_vec<W, D>(items: Vec<W>) -> Result<Vec<D>, ConversionError>
+where
+    D: TryFrom<W, Error = ConversionError>,
+{
+    items.into_iter().map(D::try_from).collect()
+}
+
+/// Unwrap a wire `Option<W>` produced for a required-in-spirit message field
+/// and convert it into the domain type `D`.
+fn required<W, D>(opt: Option<W>, field: &'static str) -> Result<D, ConversionError>
+where
+    D: TryFrom<W, Error = ConversionError>,
+{
+    let raw = opt.ok_or(ConversionError::MissingRequired(field))?;
+    D::try_from(raw)
+}
+
+// ============================================================
+// Enum conversions: SyncMessageType, AccessConfigType
+// ============================================================
+
+use crate::feature::sync_protocol as dom;
+
+impl From<dom::SyncMessageType> for wire::SyncMessageType {
+    fn from(d: dom::SyncMessageType) -> Self {
+        use dom::SyncMessageType::*;
+        match d {
+            StageUpload => Self::StageUpload,
+            StageAck => Self::StageAck,
+            PushRequest => Self::PushRequest,
+            PushResponse => Self::PushResponse,
+            PullRequest => Self::PullRequest,
+            PullResponse => Self::PullResponse,
+            HaveWant => Self::HaveWant,
+            ObjectTransfer => Self::ObjectTransfer,
+            AccessConfigSync => Self::AccessConfigSync,
+            TagSync => Self::TagSync,
+            ChunkUpload => Self::ChunkUpload,
+            ChunkDownload => Self::ChunkDownload,
+            Ping => Self::Ping,
+            Pong => Self::Pong,
+        }
+    }
+}
+
+impl TryFrom<wire::SyncMessageType> for dom::SyncMessageType {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::SyncMessageType) -> Result<Self, Self::Error> {
+        use wire::SyncMessageType::*;
+        Ok(match w {
+            Unspecified => {
+                return Err(ConversionError::InvalidEnum {
+                    enum_name: "SyncMessageType",
+                    value: 0,
+                });
+            }
+            StageUpload => Self::StageUpload,
+            StageAck => Self::StageAck,
+            PushRequest => Self::PushRequest,
+            PushResponse => Self::PushResponse,
+            PullRequest => Self::PullRequest,
+            PullResponse => Self::PullResponse,
+            HaveWant => Self::HaveWant,
+            ObjectTransfer => Self::ObjectTransfer,
+            AccessConfigSync => Self::AccessConfigSync,
+            TagSync => Self::TagSync,
+            ChunkUpload => Self::ChunkUpload,
+            ChunkDownload => Self::ChunkDownload,
+            Ping => Self::Ping,
+            Pong => Self::Pong,
+        })
+    }
+}
+
+impl From<dom::AccessConfigType> for wire::AccessConfigType {
+    fn from(d: dom::AccessConfigType) -> Self {
+        use dom::AccessConfigType::*;
+        match d {
+            Roles => Self::Roles,
+            Policies => Self::Policies,
+            TenantAccess => Self::TenantAccess,
+            BranchProtection => Self::BranchProtection,
+            License => Self::License,
+        }
+    }
+}
+
+impl TryFrom<wire::AccessConfigType> for dom::AccessConfigType {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::AccessConfigType) -> Result<Self, Self::Error> {
+        use wire::AccessConfigType::*;
+        Ok(match w {
+            Unspecified => {
+                return Err(ConversionError::InvalidEnum {
+                    enum_name: "AccessConfigType",
+                    value: 0,
+                });
+            }
+            Roles => Self::Roles,
+            Policies => Self::Policies,
+            TenantAccess => Self::TenantAccess,
+            BranchProtection => Self::BranchProtection,
+            License => Self::License,
+        })
+    }
+}
+
+// ============================================================
+// Have/Want negotiation messages
+// ============================================================
+
+impl From<dom::HaveMessage> for wire::HaveMessage {
+    fn from(d: dom::HaveMessage) -> Self {
+        Self {
+            hashes: d.hashes.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl TryFrom<wire::HaveMessage> for dom::HaveMessage {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::HaveMessage) -> Result<Self, Self::Error> {
+        Ok(Self {
+            hashes: try_collect_vec(w.hashes)?,
+        })
+    }
+}
+
+impl From<dom::WantMessage> for wire::WantMessage {
+    fn from(d: dom::WantMessage) -> Self {
+        Self {
+            hashes: d.hashes.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl TryFrom<wire::WantMessage> for dom::WantMessage {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::WantMessage) -> Result<Self, Self::Error> {
+        Ok(Self {
+            hashes: try_collect_vec(w.hashes)?,
+        })
+    }
+}
+
+impl From<dom::ObjectTransferPlan> for wire::ObjectTransferPlan {
+    fn from(d: dom::ObjectTransferPlan) -> Self {
+        Self {
+            objects_to_send: d.objects_to_send.into_iter().map(Into::into).collect(),
+            total_size: d.total_size,
+        }
+    }
+}
+
+impl TryFrom<wire::ObjectTransferPlan> for dom::ObjectTransferPlan {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::ObjectTransferPlan) -> Result<Self, Self::Error> {
+        Ok(Self {
+            objects_to_send: try_collect_vec(w.objects_to_send)?,
+            total_size: w.total_size,
+        })
+    }
+}
+
+// ============================================================
+// Push request (PushResponse + PushRejection in commit 3)
+// ============================================================
+
+impl From<dom::PushRequest> for wire::PushRequest {
+    fn from(d: dom::PushRequest) -> Self {
+        Self {
+            tenant_id: Some(d.tenant_id.into()),
+            tree_id: Some(d.tree_id.into()),
+            branch_id: Some(d.branch_id.into()),
+            branch_name: d.branch_name,
+            old_tip: d.old_tip.map(Into::into),
+            new_tip: Some(d.new_tip.into()),
+            snapshot_chain: d.snapshot_chain.into_iter().map(Into::into).collect(),
+            account_id: Some(d.account_id.into()),
+        }
+    }
+}
+
+impl TryFrom<wire::PushRequest> for dom::PushRequest {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::PushRequest) -> Result<Self, Self::Error> {
+        Ok(Self {
+            tenant_id: required(w.tenant_id, "PushRequest.tenant_id")?,
+            tree_id: required(w.tree_id, "PushRequest.tree_id")?,
+            branch_id: required(w.branch_id, "PushRequest.branch_id")?,
+            branch_name: w.branch_name,
+            old_tip: w.old_tip.map(SnapshotId::try_from).transpose()?,
+            new_tip: required(w.new_tip, "PushRequest.new_tip")?,
+            snapshot_chain: try_collect_vec(w.snapshot_chain)?,
+            account_id: required(w.account_id, "PushRequest.account_id")?,
+        })
+    }
+}
+
+// ============================================================
+// Pull request + response
+// ============================================================
+
+impl From<dom::PullRequest> for wire::PullRequest {
+    fn from(d: dom::PullRequest) -> Self {
+        Self {
+            tenant_id: Some(d.tenant_id.into()),
+            tree_id: Some(d.tree_id.into()),
+            branch_id: Some(d.branch_id.into()),
+            current_tip: d.current_tip.map(Into::into),
+            account_id: Some(d.account_id.into()),
+            depth: d.depth,
+        }
+    }
+}
+
+impl TryFrom<wire::PullRequest> for dom::PullRequest {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::PullRequest) -> Result<Self, Self::Error> {
+        Ok(Self {
+            tenant_id: required(w.tenant_id, "PullRequest.tenant_id")?,
+            tree_id: required(w.tree_id, "PullRequest.tree_id")?,
+            branch_id: required(w.branch_id, "PullRequest.branch_id")?,
+            current_tip: w.current_tip.map(SnapshotId::try_from).transpose()?,
+            account_id: required(w.account_id, "PullRequest.account_id")?,
+            depth: w.depth,
+        })
+    }
+}
+
+impl From<dom::PullResponse> for wire::PullResponse {
+    fn from(d: dom::PullResponse) -> Self {
+        Self {
+            has_updates: d.has_updates,
+            new_tip: d.new_tip.map(Into::into),
+            snapshot_chain: d.snapshot_chain.into_iter().map(Into::into).collect(),
+            objects_to_fetch: d.objects_to_fetch.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl TryFrom<wire::PullResponse> for dom::PullResponse {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::PullResponse) -> Result<Self, Self::Error> {
+        Ok(Self {
+            has_updates: w.has_updates,
+            new_tip: w.new_tip.map(SnapshotId::try_from).transpose()?,
+            snapshot_chain: try_collect_vec(w.snapshot_chain)?,
+            objects_to_fetch: try_collect_vec(w.objects_to_fetch)?,
+        })
+    }
+}
+
+// ============================================================
+// Stage upload request + response
+// ============================================================
+
+impl From<dom::StageUploadRequest> for wire::StageUploadRequest {
+    fn from(d: dom::StageUploadRequest) -> Self {
+        Self {
+            tenant_id: Some(d.tenant_id.into()),
+            tree_id: Some(d.tree_id.into()),
+            branch_id: Some(d.branch_id.into()),
+            branch_name: d.branch_name,
+            snapshot_id: Some(d.snapshot_id.into()),
+            files_changed: d.files_changed,
+            files_added: d.files_added,
+            files_modified: d.files_modified,
+            files_deleted: d.files_deleted,
+            message: d.message,
+            account_id: Some(d.account_id.into()),
+        }
+    }
+}
+
+impl TryFrom<wire::StageUploadRequest> for dom::StageUploadRequest {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::StageUploadRequest) -> Result<Self, Self::Error> {
+        Ok(Self {
+            tenant_id: required(w.tenant_id, "StageUploadRequest.tenant_id")?,
+            tree_id: required(w.tree_id, "StageUploadRequest.tree_id")?,
+            branch_id: required(w.branch_id, "StageUploadRequest.branch_id")?,
+            branch_name: w.branch_name,
+            snapshot_id: required(w.snapshot_id, "StageUploadRequest.snapshot_id")?,
+            files_changed: w.files_changed,
+            files_added: w.files_added,
+            files_modified: w.files_modified,
+            files_deleted: w.files_deleted,
+            message: w.message,
+            account_id: required(w.account_id, "StageUploadRequest.account_id")?,
+        })
+    }
+}
+
+impl From<dom::StageUploadResponse> for wire::StageUploadResponse {
+    fn from(d: dom::StageUploadResponse) -> Self {
+        Self {
+            accepted: d.accepted,
+            error: d.error,
+        }
+    }
+}
+
+impl TryFrom<wire::StageUploadResponse> for dom::StageUploadResponse {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::StageUploadResponse) -> Result<Self, Self::Error> {
+        Ok(Self {
+            accepted: w.accepted,
+            error: w.error,
+        })
+    }
+}
+
+// ============================================================
+// Access config sync request + response
+// ============================================================
+
+impl From<dom::AccessConfigSyncRequest> for wire::AccessConfigSyncRequest {
+    fn from(d: dom::AccessConfigSyncRequest) -> Self {
+        Self {
+            tenant_id: Some(d.tenant_id.into()),
+            config_type: wire::AccessConfigType::from(d.config_type) as i32,
+            content: d.content,
+            config_hash: Some(d.config_hash.into()),
+            account_id: Some(d.account_id.into()),
+        }
+    }
+}
+
+impl TryFrom<wire::AccessConfigSyncRequest> for dom::AccessConfigSyncRequest {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::AccessConfigSyncRequest) -> Result<Self, Self::Error> {
+        let cfg_wire = wire::AccessConfigType::try_from(w.config_type).map_err(|_| {
+            ConversionError::InvalidEnum {
+                enum_name: "AccessConfigType",
+                value: w.config_type,
+            }
+        })?;
+        Ok(Self {
+            tenant_id: required(w.tenant_id, "AccessConfigSyncRequest.tenant_id")?,
+            config_type: cfg_wire.try_into()?,
+            content: w.content,
+            config_hash: required(w.config_hash, "AccessConfigSyncRequest.config_hash")?,
+            account_id: required(w.account_id, "AccessConfigSyncRequest.account_id")?,
+        })
+    }
+}
+
+impl From<dom::AccessConfigSyncResponse> for wire::AccessConfigSyncResponse {
+    fn from(d: dom::AccessConfigSyncResponse) -> Self {
+        Self {
+            accepted: d.accepted,
+            validation_errors: d.validation_errors,
+        }
+    }
+}
+
+impl TryFrom<wire::AccessConfigSyncResponse> for dom::AccessConfigSyncResponse {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::AccessConfigSyncResponse) -> Result<Self, Self::Error> {
+        Ok(Self {
+            accepted: w.accepted,
+            validation_errors: w.validation_errors,
+        })
+    }
+}
+
+// ============================================================
+// Sync state + sync envelope (use timestamp helpers + enum)
+// ============================================================
+
+impl From<dom::SyncState> for wire::SyncState {
+    fn from(d: dom::SyncState) -> Self {
+        Self {
+            last_sync: d.last_sync.map(datetime_to_prost),
+            local_tip: d.local_tip.map(Into::into),
+            remote_tip: d.remote_tip.map(Into::into),
+            pending_staged: d.pending_staged,
+            pending_objects: d.pending_objects,
+            is_syncing: d.is_syncing,
+            offline: d.offline,
+        }
+    }
+}
+
+impl TryFrom<wire::SyncState> for dom::SyncState {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::SyncState) -> Result<Self, Self::Error> {
+        Ok(Self {
+            last_sync: w
+                .last_sync
+                .map(|ts| prost_to_datetime(ts, "SyncState.last_sync"))
+                .transpose()?,
+            local_tip: w.local_tip.map(SnapshotId::try_from).transpose()?,
+            remote_tip: w.remote_tip.map(SnapshotId::try_from).transpose()?,
+            pending_staged: w.pending_staged,
+            pending_objects: w.pending_objects,
+            is_syncing: w.is_syncing,
+            offline: w.offline,
+        })
+    }
+}
+
+impl From<dom::SyncEnvelope> for wire::SyncEnvelope {
+    fn from(d: dom::SyncEnvelope) -> Self {
+        Self {
+            message_type: wire::SyncMessageType::from(d.message_type) as i32,
+            payload: d.payload,
+            timestamp: Some(datetime_to_prost(d.timestamp)),
+            sequence: d.sequence,
+        }
+    }
+}
+
+impl TryFrom<wire::SyncEnvelope> for dom::SyncEnvelope {
+    type Error = ConversionError;
+
+    fn try_from(w: wire::SyncEnvelope) -> Result<Self, Self::Error> {
+        let mt_wire = wire::SyncMessageType::try_from(w.message_type).map_err(|_| {
+            ConversionError::InvalidEnum {
+                enum_name: "SyncMessageType",
+                value: w.message_type,
+            }
+        })?;
+        Ok(Self {
+            message_type: mt_wire.try_into()?,
+            payload: w.payload,
+            timestamp: prost_to_datetime(
+                w.timestamp
+                    .ok_or(ConversionError::MissingRequired("SyncEnvelope.timestamp"))?,
+                "SyncEnvelope.timestamp",
+            )?,
+            sequence: w.sequence,
+        })
+    }
+}
+
+// ============================================================
 // Tests
 // ============================================================
 
@@ -249,5 +705,288 @@ mod tests {
         let back = prost_to_datetime(prost, "test").unwrap();
         // chrono nanos precision is preserved
         assert_eq!(now, back);
+    }
+
+    // Helpers for tests below
+    fn sample_have_message() -> dom::HaveMessage {
+        dom::HaveMessage {
+            hashes: vec![hash_bytes(b"a"), hash_bytes(b"b")],
+        }
+    }
+
+    fn sample_push_request() -> dom::PushRequest {
+        dom::PushRequest {
+            tenant_id: TenantId::new(),
+            tree_id: TreeId::new(),
+            branch_id: BranchId::new(),
+            branch_name: "main".into(),
+            old_tip: Some(SnapshotId::new()),
+            new_tip: SnapshotId::new(),
+            snapshot_chain: vec![SnapshotId::new(), SnapshotId::new()],
+            account_id: AccountId::new(),
+        }
+    }
+
+    // Enum conversions
+
+    #[test]
+    fn sync_message_type_roundtrip_all_variants() {
+        use dom::SyncMessageType::*;
+        for d in [
+            StageUpload,
+            StageAck,
+            PushRequest,
+            PushResponse,
+            PullRequest,
+            PullResponse,
+            HaveWant,
+            ObjectTransfer,
+            AccessConfigSync,
+            TagSync,
+            ChunkUpload,
+            ChunkDownload,
+            Ping,
+            Pong,
+        ] {
+            let w: wire::SyncMessageType = d.clone().into();
+            let back: dom::SyncMessageType = w.try_into().unwrap();
+            assert_eq!(d, back);
+        }
+    }
+
+    #[test]
+    fn sync_message_type_unspecified_is_error() {
+        let err = dom::SyncMessageType::try_from(wire::SyncMessageType::Unspecified).unwrap_err();
+        match err {
+            ConversionError::InvalidEnum { enum_name, value } => {
+                assert_eq!(enum_name, "SyncMessageType");
+                assert_eq!(value, 0);
+            }
+            _ => panic!("expected InvalidEnum, got {err:?}"),
+        }
+    }
+
+    #[test]
+    fn access_config_type_roundtrip_all_variants() {
+        use dom::AccessConfigType::*;
+        for d in [Roles, Policies, TenantAccess, BranchProtection, License] {
+            let w: wire::AccessConfigType = d.clone().into();
+            let back: dom::AccessConfigType = w.try_into().unwrap();
+            assert_eq!(d, back);
+        }
+    }
+
+    // Have/Want messages
+
+    #[test]
+    fn have_message_roundtrip() {
+        let d = sample_have_message();
+        let w: wire::HaveMessage = d.clone().into();
+        let back: dom::HaveMessage = w.try_into().unwrap();
+        assert_eq!(d.hashes, back.hashes);
+    }
+
+    #[test]
+    fn want_message_roundtrip() {
+        let d = dom::WantMessage {
+            hashes: vec![hash_bytes(b"x")],
+        };
+        let w: wire::WantMessage = d.clone().into();
+        let back: dom::WantMessage = w.try_into().unwrap();
+        assert_eq!(d.hashes, back.hashes);
+    }
+
+    #[test]
+    fn object_transfer_plan_roundtrip() {
+        let d = dom::ObjectTransferPlan {
+            objects_to_send: vec![hash_bytes(b"obj1"), hash_bytes(b"obj2")],
+            total_size: 12345,
+        };
+        let w: wire::ObjectTransferPlan = d.clone().into();
+        let back: dom::ObjectTransferPlan = w.try_into().unwrap();
+        assert_eq!(d.objects_to_send, back.objects_to_send);
+        assert_eq!(d.total_size, back.total_size);
+    }
+
+    // Push request
+
+    #[test]
+    fn push_request_roundtrip() {
+        let d = sample_push_request();
+        let w: wire::PushRequest = d.clone().into();
+        let back: dom::PushRequest = w.try_into().unwrap();
+        assert_eq!(d.tenant_id, back.tenant_id);
+        assert_eq!(d.tree_id, back.tree_id);
+        assert_eq!(d.branch_id, back.branch_id);
+        assert_eq!(d.branch_name, back.branch_name);
+        assert_eq!(d.old_tip, back.old_tip);
+        assert_eq!(d.new_tip, back.new_tip);
+        assert_eq!(d.snapshot_chain, back.snapshot_chain);
+        assert_eq!(d.account_id, back.account_id);
+    }
+
+    #[test]
+    fn push_request_missing_tenant_id_error() {
+        let w = wire::PushRequest {
+            tenant_id: None,
+            tree_id: Some(TreeId::new().into()),
+            branch_id: Some(BranchId::new().into()),
+            branch_name: "main".into(),
+            old_tip: None,
+            new_tip: Some(SnapshotId::new().into()),
+            snapshot_chain: vec![],
+            account_id: Some(AccountId::new().into()),
+        };
+        let err = dom::PushRequest::try_from(w).unwrap_err();
+        match err {
+            ConversionError::MissingRequired(field) => {
+                assert_eq!(field, "PushRequest.tenant_id");
+            }
+            _ => panic!("expected MissingRequired, got {err:?}"),
+        }
+    }
+
+    // Pull request + response
+
+    #[test]
+    fn pull_request_roundtrip() {
+        let d = dom::PullRequest {
+            tenant_id: TenantId::new(),
+            tree_id: TreeId::new(),
+            branch_id: BranchId::new(),
+            current_tip: None,
+            account_id: AccountId::new(),
+            depth: Some(10),
+        };
+        let w: wire::PullRequest = d.clone().into();
+        let back: dom::PullRequest = w.try_into().unwrap();
+        assert_eq!(d.tenant_id, back.tenant_id);
+        assert_eq!(d.current_tip, back.current_tip);
+        assert_eq!(d.depth, back.depth);
+    }
+
+    #[test]
+    fn pull_response_with_updates_roundtrip() {
+        let d = dom::PullResponse::with_updates(
+            SnapshotId::new(),
+            vec![SnapshotId::new()],
+            vec![hash_bytes(b"obj")],
+        );
+        let w: wire::PullResponse = d.clone().into();
+        let back: dom::PullResponse = w.try_into().unwrap();
+        assert_eq!(d.has_updates, back.has_updates);
+        assert_eq!(d.new_tip, back.new_tip);
+    }
+
+    #[test]
+    fn pull_response_no_updates_roundtrip() {
+        let d = dom::PullResponse::no_updates();
+        let w: wire::PullResponse = d.clone().into();
+        let back: dom::PullResponse = w.try_into().unwrap();
+        assert!(!back.has_updates);
+        assert!(back.new_tip.is_none());
+    }
+
+    // Stage upload
+
+    #[test]
+    fn stage_upload_request_roundtrip() {
+        let d = dom::StageUploadRequest {
+            tenant_id: TenantId::new(),
+            tree_id: TreeId::new(),
+            branch_id: BranchId::new(),
+            branch_name: "feature/foo".into(),
+            snapshot_id: SnapshotId::new(),
+            files_changed: vec!["src/main.rs".into(), "README.md".into()],
+            files_added: 1,
+            files_modified: 1,
+            files_deleted: 0,
+            message: Some("wip".into()),
+            account_id: AccountId::new(),
+        };
+        let w: wire::StageUploadRequest = d.clone().into();
+        let back: dom::StageUploadRequest = w.try_into().unwrap();
+        assert_eq!(d.tenant_id, back.tenant_id);
+        assert_eq!(d.branch_name, back.branch_name);
+        assert_eq!(d.files_changed, back.files_changed);
+        assert_eq!(d.message, back.message);
+    }
+
+    #[test]
+    fn stage_upload_response_roundtrip() {
+        let d = dom::StageUploadResponse {
+            accepted: false,
+            error: Some("quota".into()),
+        };
+        let w: wire::StageUploadResponse = d.clone().into();
+        let back: dom::StageUploadResponse = w.try_into().unwrap();
+        assert_eq!(d.accepted, back.accepted);
+        assert_eq!(d.error, back.error);
+    }
+
+    // Access config sync
+
+    #[test]
+    fn access_config_sync_request_roundtrip() {
+        let d = dom::AccessConfigSyncRequest {
+            tenant_id: TenantId::new(),
+            config_type: dom::AccessConfigType::Roles,
+            content: b"<roles toml>".to_vec(),
+            config_hash: hash_bytes(b"<roles toml>"),
+            account_id: AccountId::new(),
+        };
+        let w: wire::AccessConfigSyncRequest = d.clone().into();
+        let back: dom::AccessConfigSyncRequest = w.try_into().unwrap();
+        assert_eq!(d.tenant_id, back.tenant_id);
+        assert_eq!(d.config_type, back.config_type);
+        assert_eq!(d.content, back.content);
+        assert_eq!(d.config_hash, back.config_hash);
+    }
+
+    #[test]
+    fn access_config_sync_response_roundtrip() {
+        let d = dom::AccessConfigSyncResponse {
+            accepted: true,
+            validation_errors: vec![],
+        };
+        let w: wire::AccessConfigSyncResponse = d.clone().into();
+        let back: dom::AccessConfigSyncResponse = w.try_into().unwrap();
+        assert_eq!(d.accepted, back.accepted);
+        assert_eq!(d.validation_errors, back.validation_errors);
+    }
+
+    // Sync state + sync envelope
+
+    #[test]
+    fn sync_state_roundtrip() {
+        let d = dom::SyncState {
+            last_sync: Some(chrono::Utc::now()),
+            local_tip: Some(SnapshotId::new()),
+            remote_tip: Some(SnapshotId::new()),
+            pending_staged: 3,
+            pending_objects: 7,
+            is_syncing: true,
+            offline: false,
+        };
+        let w: wire::SyncState = d.clone().into();
+        let back: dom::SyncState = w.try_into().unwrap();
+        assert_eq!(d.local_tip, back.local_tip);
+        assert_eq!(d.pending_staged, back.pending_staged);
+        assert_eq!(d.is_syncing, back.is_syncing);
+    }
+
+    #[test]
+    fn sync_envelope_roundtrip() {
+        let d = dom::SyncEnvelope {
+            message_type: dom::SyncMessageType::StageUpload,
+            payload: vec![1, 2, 3, 4],
+            timestamp: chrono::Utc::now(),
+            sequence: 42,
+        };
+        let w: wire::SyncEnvelope = d.clone().into();
+        let back: dom::SyncEnvelope = w.try_into().unwrap();
+        assert_eq!(d.message_type, back.message_type);
+        assert_eq!(d.payload, back.payload);
+        assert_eq!(d.sequence, back.sequence);
     }
 }
