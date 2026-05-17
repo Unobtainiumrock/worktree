@@ -344,7 +344,9 @@ We follow **Conventional Commits** with scope:
 
 ### Scopes
 
-Use the crate or area name: `protocol`, `server`, `cli`, `git`, `sdk`, `admin`, `web`, `docs`, `ci`, `specs`.
+Use the crate or area name: `protocol`, `server`, `server-go`, `bg`, `cli`, `git`, `sdk`, `admin`, `web`, `docs`, `ci`, `specs`.
+
+`bg` was introduced in PR #4 for the `worktree-bg` crate, and `server-go` was introduced in PR #6 for the `services/server-go/` Go module. Both scopes are de-facto accepted via merged PRs.
 
 ### Examples
 
