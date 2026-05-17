@@ -126,7 +126,7 @@ W0rkTree operates as a **two-runtime system**. Neither runtime is optional.
 
 ## Project Structure
 
-W0rkTree is a polyglot monorepo managed with **Cargo workspaces** (Rust) and **Turborepo + npm** (TypeScript/web).
+W0rkTree is a polyglot monorepo managed with **Cargo workspaces** (Rust, under `crates/`), a **Go module** (remote server, under `services/server-go/`), and **Turborepo + npm** (TypeScript/web, under `apps/web/`).
 
 ```
 worktree/
