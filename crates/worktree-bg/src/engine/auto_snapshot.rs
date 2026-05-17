@@ -1,20 +1,20 @@
 use crate::engine::event::SemanticEvent;
 
-/// Engine responsible for deciding when to automatically create a snapshot (commit).
+/// Engine responsible for deciding when to automatically create a snapshot.
 ///
-/// The `AutoCommitEngine` examines a batch of semantic events and determines
-/// whether a snapshot should be created. If so, it returns a suggested commit
-/// message describing the changes.
-pub struct AutoCommitEngine {
-    /// Minimum number of events before considering an auto-commit.
+/// The `AutoSnapshotEngine` examines a batch of semantic events and determines
+/// whether a snapshot should be created. If so, it returns a suggested
+/// snapshot message describing the changes.
+pub struct AutoSnapshotEngine {
+    /// Minimum number of events before considering an auto-snapshot.
     pub min_event_threshold: usize,
 
-    /// Maximum number of events to accumulate before forcing a commit.
+    /// Maximum number of events to accumulate before forcing a snapshot.
     pub max_event_threshold: usize,
 }
 
-impl AutoCommitEngine {
-    /// Create a new `AutoCommitEngine` with sensible defaults.
+impl AutoSnapshotEngine {
+    /// Create a new `AutoSnapshotEngine` with sensible defaults.
     pub fn new() -> Self {
         Self {
             min_event_threshold: 1,
@@ -22,7 +22,7 @@ impl AutoCommitEngine {
         }
     }
 
-    /// Create a new `AutoCommitEngine` with custom thresholds.
+    /// Create a new `AutoSnapshotEngine` with custom thresholds.
     pub fn with_thresholds(min_event_threshold: usize, max_event_threshold: usize) -> Self {
         Self {
             min_event_threshold,
@@ -39,11 +39,11 @@ impl AutoCommitEngine {
             return None;
         }
 
-        todo!("analyze semantic events to decide whether to auto-commit and generate a message")
+        todo!("analyze semantic events to decide whether to auto-snapshot and generate a message")
     }
 }
 
-impl Default for AutoCommitEngine {
+impl Default for AutoSnapshotEngine {
     fn default() -> Self {
         Self::new()
     }
