@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use crate::error::ServerError;
+use crate::error::BgError;
 
 /// The background daemon that manages the Worktree server lifecycle.
 ///
@@ -24,9 +24,9 @@ impl Daemon {
     ///
     /// Returns an error if the daemon is already running or if any subsystem
     /// fails to initialize.
-    pub async fn start(&self) -> Result<(), ServerError> {
+    pub async fn start(&self) -> Result<(), BgError> {
         if self.running.load(Ordering::SeqCst) {
-            return Err(ServerError::Engine("daemon is already running".into()));
+            return Err(BgError::Engine("daemon is already running".into()));
         }
         self.running.store(true, Ordering::SeqCst);
         tracing::info!("Daemon started");
@@ -37,9 +37,9 @@ impl Daemon {
     ///
     /// Returns an error if the daemon is not currently running or if shutdown
     /// fails to complete cleanly.
-    pub async fn stop(&self) -> Result<(), ServerError> {
+    pub async fn stop(&self) -> Result<(), BgError> {
         if !self.running.load(Ordering::SeqCst) {
-            return Err(ServerError::Engine("daemon is not running".into()));
+            return Err(BgError::Engine("daemon is not running".into()));
         }
         self.running.store(false, Ordering::SeqCst);
         tracing::info!("Daemon stopped");

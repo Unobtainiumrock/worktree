@@ -1,4 +1,4 @@
-use crate::error::ServerError;
+use crate::error::BgError;
 use crate::sync::transport::Transport;
 
 /// Represents a push operation that transfers local snapshots and objects
@@ -52,10 +52,10 @@ impl PushOperation {
     ///
     /// # Errors
     ///
-    /// Returns a `ServerError` if the transport connection fails, the remote
+    /// Returns a `BgError` if the transport connection fails, the remote
     /// rejects the push (e.g. non-fast-forward without `force`), or any
     /// objects fail to transfer.
-    pub async fn execute(&self) -> Result<(), ServerError> {
+    pub async fn execute(&self) -> Result<(), BgError> {
         tracing::info!(
             tree_id = %self.tree_id,
             branch = %self.branch,

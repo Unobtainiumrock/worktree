@@ -202,8 +202,14 @@ mod tests {
     fn flush_all_drains_everything() {
         let mut debouncer = Debouncer::new(500);
 
-        debouncer.push(DebouncedEvent::now(PathBuf::from("a.rs"), EventKind::Created));
-        debouncer.push(DebouncedEvent::now(PathBuf::from("b.rs"), EventKind::Deleted));
+        debouncer.push(DebouncedEvent::now(
+            PathBuf::from("a.rs"),
+            EventKind::Created,
+        ));
+        debouncer.push(DebouncedEvent::now(
+            PathBuf::from("b.rs"),
+            EventKind::Deleted,
+        ));
 
         let events = debouncer.flush_all();
         assert_eq!(events.len(), 2);

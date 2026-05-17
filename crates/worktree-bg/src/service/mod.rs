@@ -1,1 +1,3 @@
-//! service — stub for WT-EXTRACT-2.
+pub mod daemon;
+pub mod health;
+pub mod install;

@@ -3,7 +3,7 @@ use std::sync::mpsc;
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::error::ServerError;
+use crate::error::BgError;
 
 /// Watches a directory tree for file-system changes using the platform's
 /// native file-notification API (via the `notify` crate).
@@ -19,7 +19,7 @@ impl FileSystemWatcher {
     ///
     /// Events will be delivered to the internal receiver which can be
     /// consumed via [`Self::receiver`].
-    pub fn new() -> Result<Self, ServerError> {
+    pub fn new() -> Result<Self, BgError> {
         let (tx, rx) = mpsc::channel();
 
         let watcher = RecommendedWatcher::new(
@@ -29,7 +29,7 @@ impl FileSystemWatcher {
             },
             Config::default(),
         )
-        .map_err(|e| ServerError::Watcher(format!("failed to create fs watcher: {}", e)))?;
+        .map_err(|e| BgError::Watcher(format!("failed to create fs watcher: {}", e)))?;
 
         Ok(Self {
             watcher,
@@ -41,33 +41,25 @@ impl FileSystemWatcher {
     ///
     /// All file-system events under `path` will be forwarded to the
     /// internal receiver channel.
-    pub fn watch(&mut self, path: &Path) -> Result<(), ServerError> {
+    pub fn watch(&mut self, path: &Path) -> Result<(), BgError> {
         self.watcher
             .watch(path, RecursiveMode::Recursive)
             .map_err(|e| {
-                ServerError::Watcher(format!(
-                    "failed to watch path {}: {}",
-                    path.display(),
-                    e
-                ))
+                BgError::Watcher(format!("failed to watch path {}: {}", path.display(), e))
             })
     }
 
     /// Stop watching the given path.
     ///
     /// If the path was not previously watched this is a no-op.
-    pub fn unwatch(&mut self, path: &Path) -> Result<(), ServerError> {
+    pub fn unwatch(&mut self, path: &Path) -> Result<(), BgError> {
         self.watcher.unwatch(path).map_err(|e| {
-            ServerError::Watcher(format!(
-                "failed to unwatch path {}: {}",
-                path.display(),
-                e
-            ))
+            BgError::Watcher(format!("failed to unwatch path {}: {}", path.display(), e))
         })
     }
 
     /// Stop watching all paths by dropping and re-creating the inner watcher.
-    pub fn stop(&mut self) -> Result<(), ServerError> {
+    pub fn stop(&mut self) -> Result<(), BgError> {
         let (tx, rx) = mpsc::channel();
 
         let watcher = RecommendedWatcher::new(
@@ -76,9 +68,7 @@ impl FileSystemWatcher {
             },
             Config::default(),
         )
-        .map_err(|e| {
-            ServerError::Watcher(format!("failed to recreate fs watcher on stop: {}", e))
-        })?;
+        .map_err(|e| BgError::Watcher(format!("failed to recreate fs watcher on stop: {}", e)))?;
 
         self.watcher = watcher;
         self.receiver = rx;
